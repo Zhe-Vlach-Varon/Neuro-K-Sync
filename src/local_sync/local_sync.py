@@ -180,6 +180,7 @@ def save_path(path_config_file: Path, directory: Path) -> None:
 def setup_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Neuro Karaoke Archive metadata synchronizer.") 
     parser.add_argument("--path", type=str, default='', help="Path to Archive")
+    parser.add_argument("--zipfile", type=str, default='', help="Path to Local Zip File, fetches latest from github if ommitted")
 
     return parser.parse_args()
 
@@ -234,7 +235,14 @@ def main(script_dir: Path) -> None:
 
     args = setup_parser()
 
-    zip_data = get_remote_zip()
+    if args.zipfile and (arg_zipfile := Path(args.zipfile)).is_file() and str(arg_zipfile).endswith(".zip"):
+        logger.info("using local zipfile")
+        with open(arg_zipfile, 'rb') as file_data:
+            bytes_content = file_data.read()
+        zip_data = io.BytesIO(bytes_content)
+    else:
+        logger.info("fetching remote zipfile")
+        zip_data = get_remote_zip()
 
     if zip_data is None:
         logger.critical("Failed to retrieve zip data.")
