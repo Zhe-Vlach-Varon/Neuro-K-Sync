@@ -33,3 +33,4 @@ Thumbs.db
 # Ignore sensitive environment variables
 .env
 
+.vscode
