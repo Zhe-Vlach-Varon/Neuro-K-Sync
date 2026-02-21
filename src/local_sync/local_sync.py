@@ -181,6 +181,7 @@ def setup_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Neuro Karaoke Archive metadata synchronizer.") 
     parser.add_argument("--path", type=str, default='', help="Path to Archive")
     parser.add_argument("--zipfile", type=str, default='', help="Path to Local Zip File, fetches latest from github if ommitted")
+    parser.add_argument("--verbose", action='store_true', help="enable extra debugging log output")
 
     return parser.parse_args()
 
@@ -287,6 +288,8 @@ def main(script_dir: Path) -> None:
     update_indexes = set(n for n in range(song_amount, song_update_threashold))
 
     for i, song in song_structs:
+        if args.verbose:
+            logger.info(str(i+1) + '/' + str(song_amount) + ': ' + str(song.file_path)) # TODO log both old and new file name
 
         song.raw_payload = get_raw_json(song.file_path)
         
