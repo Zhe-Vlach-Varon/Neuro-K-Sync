@@ -293,10 +293,11 @@ def main(script_dir: Path) -> None:
 
         song.raw_payload = get_raw_json(song.file_path)
         
-        song.xxhash = get_raw(song.raw_payload, "xxHash")
+        # song.xxhash = get_raw(song.raw_payload, "xxHash")
+        song.xxhash = None
 
         if not song.xxhash:
-            song.xxhash = get_audio_hash(str(song.file_path)) # This takes a looooog time
+            song.xxhash = get_audio_hash(song.file_path) # This takes a looooog time
 
         if song.xxhash is None:
             continue
@@ -353,6 +354,9 @@ def main(script_dir: Path) -> None:
 
     if seen_hjson_count < (len(lookup_table) - 150):
         logger.info("Many files are missing. If this is intentional, feel free to ignore this message.")
+        for hjson_struct in lookup_table.values():
+            if hjson_struct.seen is False:
+                logger.debug(f"Missing {hjson_struct.metadata.get("Track", "")} {hjson_struct.metadata.get("Title", "")}")
 
     elif all((struct.seen for struct in lookup_table.values())):
         logger.info("Your archive is fully up to date!")

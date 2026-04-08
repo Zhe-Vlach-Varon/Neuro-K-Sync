@@ -6,6 +6,9 @@ from mutagen.id3 import COMM, ID3, Frame, ID3NoHeaderError
 # from mutagen.mp3 import MP3
 from tinytag import TinyTag
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def get_all_mp3(directory: Path | str) -> list[str]: 
     """
@@ -100,6 +103,8 @@ def build_payload(filename: str, date: str, title: str, artist: str,
 #     audio.save()
 
 def engrave_payload(path: str, song_data: str) -> None:
+    logger.debug(song_data)
+
     try:
         tags = ID3(path)
     except ID3NoHeaderError:

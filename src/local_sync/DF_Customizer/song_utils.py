@@ -1,7 +1,7 @@
 """Utilities for reading/writing Song ID3 tags and embedded JSON metadata."""
 
 import contextlib
-import hashlib
+import xxhash
 import json
 import logging
 import os
@@ -26,6 +26,10 @@ from mutagen.id3 import (
 )
 from PIL import Image
 from tinytag import TinyTag
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
@@ -225,80 +229,40 @@ After installation, try double-clicking again."""
     messagebox.showinfo("Media Player Required", instructions)
 
 
-def get_audio_hash(path: str) -> str | None:
-    """Calculate SHA256 hash of the audio content, ignoring ID3v1/v2 tags.
-
-    Returns hex digest string or None on error.
-    """
+def get_audio_hash(file_path: Path) -> (str | None):
     try:
-        sha256 = hashlib.sha256()
-        with Path(path).open("rb") as f:
-            # Check for ID3v2 at start
-            # Structure: https://id3.org/id3v2.4.0-structure#section-3
-            header = f.read(10)
-            start_offset = 0
 
-            if header.startswith(b"ID3") and len(header) == 10:
-                # Calculate ID3v2 size
-                version = header[3]
-                size_bytes = header[6:10]
+        file_size = file_path.stat().st_size
+        if file_size < 3000:
+            print(f"{file_path.name} is too small!")
+            return None
 
-                if version < 3:
-                    # Normal 32-bit integer (rare ID3v2.2)
-                    # Spec: https://id3.org/id3v2.2.0
-                    size = (size_bytes[0] << 24) | (size_bytes[1] << 16) | (size_bytes[2] << 8) | size_bytes[3]
-                else:
-                    # Sync-safe integer (ID3v2.3, v2.4)
-                    # Decoding: https://id3.org/id3v2.4.0-structure#section-3.2
-                    size = (
-                        ((size_bytes[0] & 0x7F) << 21)
-                        | ((size_bytes[1] & 0x7F) << 14)
-                        | ((size_bytes[2] & 0x7F) << 7)
-                        | (size_bytes[3] & 0x7F)
-                    )
+        with open(file_path, 'rb') as f:
+            file_data = f.read()
 
-                start_offset = size + 10  # Header (10) + Data
+            footer_size = 0
+            f.seek(-128, 2) # Seek 128 bytes from the end (2)
+            if f.read(3) == b'TAG':
+                footer_size = 128
+            
 
-                # Check for Footer present flag (Bit 4 of byte 5)
-                # Only valid for ID3v2.4, but harmless to check if flags exist
-                # Spec: https://id3.org/id3v2.4.0-structure#section-3.4
-                if version >= 4:
-                    flags = header[5]
-                    if flags & 0x10:
-                        start_offset += 10  # Footer size
+            if (file_size - footer_size - 1_000_000) > 987: # check to prevent negative indexes
+                end_index = file_size - footer_size - 1_000_000 ### about a Mb offset for the audio
 
-            # Check for ID3v1 at end
-            # Spec: https://id3.org/ID3v1
-            f.seek(0, os.SEEK_END)
-            file_size = f.tell()
-            end_offset = file_size
+            else:
+                end_index = int((file_size - footer_size)/2)
 
-            # ID3v1 is last 128 bytes if it starts with TAG
-            if file_size > 128:
-                f.seek(-128, os.SEEK_END)
-                if f.read(3) == b"TAG":
-                    end_offset = file_size - 128
+            logger.info(f"{file_path} End Index: {end_index}")
 
-            # Read audio data
-            f.seek(start_offset)
-            bytes_to_read = end_offset - start_offset
+            start_index = end_index - 987 ### reads a 987 bytes for the hash
 
-            if bytes_to_read <= 0:
-                # Fallback: just hash the whole file if parsing failed
-                # or offsets are invalid
-                f.seek(0)
-                bytes_to_read = file_size
+            raw_audio = file_data[start_index:end_index]
 
-            # Read in chunks
-            chunk_size = 65536
-            while bytes_to_read > 0:
-                chunk = f.read(min(chunk_size, bytes_to_read))
-                if not chunk:
-                    break
-                sha256.update(chunk)
-                bytes_to_read -= len(chunk)
+        # 4. Hash the raw audio
+        hash = xxhash.xxh64(raw_audio).hexdigest()
+        logger.info(logger.info(f"{file_path} End Index: {end_index} Hash: {hash}"))
+        return hash
 
-        return sha256.hexdigest()
-    except Exception:
-        logger.exception("Error calculating audio hash")
+    except Exception as e:
+        print(f"Error processing {file_path}: {e}")
         return None
