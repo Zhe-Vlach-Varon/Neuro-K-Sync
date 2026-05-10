@@ -232,6 +232,13 @@ After installation, try double-clicking again."""
 def get_audio_hash(file_path: Path) -> (str | None):
     try:
 
+        try:
+            audio_tags = ID3(file_path)
+            header_size = audio_tags.size  # Mutagen provides the full tag size including header
+        except ID3NoHeaderError:
+            header_size = 0
+
+        print(file_path.stat().st_size)
         file_size = file_path.stat().st_size
         if file_size < 3000:
             print(f"{file_path.name} is too small!")
@@ -250,18 +257,16 @@ def get_audio_hash(file_path: Path) -> (str | None):
                 end_index = file_size - footer_size - 1_000_000 ### about a Mb offset for the audio
 
             else:
-                end_index = int((file_size - footer_size)/2)
+                end_index = int((file_size - footer_size - header_size) * 3 / 4 + header_size)
 
-            logger.info(f"{file_path} End Index: {end_index}")
+            print(f"End Index: {end_index}")
 
             start_index = end_index - 987 ### reads a 987 bytes for the hash
 
             raw_audio = file_data[start_index:end_index]
 
         # 4. Hash the raw audio
-        hash = xxhash.xxh64(raw_audio).hexdigest()
-        logger.info(logger.info(f"{file_path} End Index: {end_index} Hash: {hash}"))
-        return hash
+        return xxhash.xxh64(raw_audio).hexdigest()
 
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
