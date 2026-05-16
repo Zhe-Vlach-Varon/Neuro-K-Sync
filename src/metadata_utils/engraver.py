@@ -33,7 +33,8 @@ def get_content_from_tags(all_tags: ID3, tag: str) -> str:
             
     return ""
 
-def build_payload(filename: str, date: str, title: str, artist: str, 
+def build_payload(filename: str, date: str, title: str, title_og: str | None,
+                  identify: str | None, artist: str, artist_og: str | None,
                   cover_artist: str, version: str, disc_number: str,
                   track: str, comment: str, special: str, xxhash: str
                  ) -> str:
@@ -48,11 +49,26 @@ def build_payload(filename: str, date: str, title: str, artist: str,
         comm_ved += f"\"Title\":\"{title}\","
     else:
         raise Exception(f"No title for {filename}!")
+    
+    if title_og:
+        comm_ved += f"\"TitleOG\":\"{title_og}\","
+    else:
+        raise Exception(f"No title_og for {filename}!")
+    
+    if identify:
+        comm_ved += f"\"Identify\":\"{identify}\","
+    else:
+        raise Exception(f"No identify for {filename}!")
 
     if artist:
         comm_ved += f"\"Artist\":\"{artist}\","
     else:
         raise Exception(f"No artist for {filename}!")
+    
+    if artist_og:
+        comm_ved += f"\"ArtistOG\":\"{artist_og}\","
+    else:
+        raise Exception(f"No artist_og for {filename}!")
 
     if cover_artist:
         comm_ved += f"\"CoverArtist\":\"{cover_artist}\","

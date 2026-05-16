@@ -250,6 +250,9 @@ def process_new_tags(song: Song, song_data: (dict[str, str] | None) = None) -> N
             logger.debug(f"No existing payload found for {song.path}")
             return None
     
+    if not "Comment" in song_data.keys() or not song_data["Comment"]:
+        song_data["Comment"] = "None"
+
     song.title = _substitution(pattern_defaults["title"], song_data)
 
     if "&" in song_data["CoverArtist"]:
