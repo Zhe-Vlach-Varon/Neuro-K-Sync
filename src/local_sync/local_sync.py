@@ -334,7 +334,11 @@ def main(script_dir: Path) -> None:
 
         format_tags(str(song.file_path), script_dir, song.song_obj, preset)
 
-        os.rename(song.file_path, song.generate_new_path())
+        new_path = song.generate_new_path()
+        if " (1)" in str(new_path):
+            new_path = Path(str(song.file_path).replace(" (1)", ""))
+        os.rename(song.file_path, new_path)
+
 
         if i in update_indexes:
             print(f"Files processed: {i+1}/{song_amount}", end='\r', flush=True)
