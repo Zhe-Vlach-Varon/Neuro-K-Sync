@@ -313,7 +313,7 @@ def main(script_dir: Path) -> None:
         song.new_song_data = {k : v if isinstance(v, str) else f"{v}" for k, v in hjson_data_struct.metadata.items()}
 
         for key, value in song.new_song_data.items():
-            if get_raw(song.raw_payload, key) != value:
+            if (not key in song.raw_payload) or get_raw(song.raw_payload, key) != value:
                 song.copy = True
                 changed += 1
                 break

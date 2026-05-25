@@ -39,6 +39,7 @@ class Song:
         self.path = path
 
 REPLACEMENT_MAP = { "%t":"Title",
+                    "%i":"Identify",
                     "%a":"Artist",
                     "%D":"Date",
                     "%c":"CoverArtist",
@@ -71,7 +72,7 @@ class Patterns(TypedDict):
     track: str
 
 pattern_defaults: Patterns = {
-    "filename": ("%N. %a - %t (%c.v%v)", "%N. %a - %t (Duet.v%v) (%c)"),
+    "filename": ("%N. %a - %t (%c.v%v)", "%N. %a - %t (Duet.v%v) (%c)", "%N. %a - %t (%i) (%c.v%v)", "%N. %a - %t (%i) (Duet.v%v) (%c)"),
     "title": "%t",
     "artist": ("%c - %a", "Duet (%c) - %a"),
     "date": "%D",
@@ -91,7 +92,7 @@ def get_all_mp3_as_obj(directory: str) -> list[Song]:
 def _substitution(new_filename_pattern: str, song_data: dict[str, str]) -> str: 
     new_value = new_filename_pattern
     for r_key in REPLACEMENT_MAP:
-        new_value = new_value.replace(r_key, song_data[REPLACEMENT_MAP[r_key]])
+        new_value = new_value.replace(r_key, song_data[REPLACEMENT_MAP[r_key]] if REPLACEMENT_MAP[r_key] in song_data.keys() else "")
     for s_key in secondary_map:
         new_value = new_value.replace(s_key, secondary_map[s_key](song_data))
     return new_value
@@ -255,12 +256,14 @@ def process_new_tags(song: Song, song_data: (dict[str, str] | None) = None) -> N
 
     song.title = _substitution(pattern_defaults["title"], song_data)
 
+    ident_present = "Identify" in song_data.keys() and song_data["Identify"] != "None"
+
     if "&" in song_data["CoverArtist"]:
-        temp_filename = _substitution(pattern_defaults["filename"][1], song_data)
+        temp_filename = _substitution(pattern_defaults["filename"][3] if ident_present else pattern_defaults["filename"][1], song_data)
         song.artist = _substitution(pattern_defaults["artist"][1], song_data)
     else:
+        temp_filename = _substitution(pattern_defaults["filename"][2] if ident_present else pattern_defaults["filename"][0], song_data)
         song.artist = _substitution(pattern_defaults["artist"][0], song_data)
-        temp_filename = _substitution(pattern_defaults["filename"][0], song_data)
 
     song.date = _substitution(pattern_defaults["date"], song_data)
     song.album = _substitution(pattern_defaults["album"], song_data)
