@@ -66,6 +66,9 @@ def _validate_date(payload: dict[str, str]) -> date:
 def _validate_version(payload: dict[str, str]) -> tuple[str, str | None]:
     major_version = minor_version = None
     version = payload['version']
+
+    coverArtist = payload['cover_artist']
+
     if not version:
         raise ValidationError("No version!")
 
@@ -73,6 +76,12 @@ def _validate_version(payload: dict[str, str]) -> tuple[str, str | None]:
         major_version, minor_version = version.split('.')
     else:
         major_version = version
+
+    if not coverArtist == "Neuro":
+        minor_version = major_version
+        if minor_version == '1':
+            minor_version = None
+        major_version = '3'
 
     if major_version not in ('1', '2', '3') or minor_version not in (None, '2', '3', '4'):
         raise ValidationError("Invalid version!")
@@ -87,7 +96,8 @@ def _validate_version_in_timeframe(payload: dict[str, str], major_version: str, 
     if cover_singer != "Neuro":
         return
 
-    if major_version == '1' and (date_input < V1_VERSION_START or date_input > V1_VERSION_END):
+    # KSI Thick of It from 2026-04-01 karaoke stream used v1 voice
+    if major_version == '1' and (not (date_input == date(2026,4,1))) and (date_input < V1_VERSION_START or date_input > V1_VERSION_END):
         raise ValidationError("Neuro V1 ended 2023-05-17!")
     elif major_version == '2' and (date_input < V2_VERSION_START or date_input > V2_VERSION_END):
         raise ValidationError("Neuro V2 ended 2023-06-08!")
